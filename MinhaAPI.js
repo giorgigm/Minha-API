@@ -2,10 +2,25 @@ const http = require('http');
 const axios = require('axios');
 const xml2js = require('xml2js');
 const nodemailer = require('nodemailer');
-const hostname = '15.228.52.208';
+
+const { networkInterfaces } = require('os');
+const nets = networkInterfaces();
+const results = Object.create(null);
+
+for (const name of Object.keys(nets)) {
+  for (const net of nets[name]) {
+    // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+    if (net.family === 'IPv4' && !net.internal) {
+      if (!results[name]) {
+        results[name] = [];
+      }
+      results[name].push(net.address);
+    }
+  }
+}
+
+const hostname = results['Wi-Fi'][0]; // assuming the computer is connected to the internet through Wi-Fi
 const port = 3000;
-
-
 
 const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url === '/api') {
@@ -14,7 +29,6 @@ const server = http.createServer((req, res) => {
     req.on('data', (chunk) => {
       body += chunk;
     });
-
     req.on('end', () => {
       const data = JSON.parse(body);
       const cnpjEntrega = data.Header.CNPJEntrega;
